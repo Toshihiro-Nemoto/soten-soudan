@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import {
   CategoryScale,
@@ -356,6 +357,7 @@ export default function Home() {
       <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">月報管理</h1>
+          <Link href="/admin" className="bg-gray-800 text-white px-4 py-2 rounded text-sm hover:bg-gray-700">管理者ページへ</Link>
           <p className="mt-1 text-sm text-zinc-600">
             相談支援専門員向けの月報を入力し、年間推移を確認できます。
           </p>
