@@ -14,9 +14,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError("メールアドレスまたはパスワードが正しくありません");
+    console.log("ログイン試行:", email, password);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+console.log("結果:", data, error);
+if (error) {
+  console.log("エラー詳細:", error.message, error.status);
+  setError("メールアドレスまたはパスワードが正しくありません");
     } else {
       router.push("/");
     }
