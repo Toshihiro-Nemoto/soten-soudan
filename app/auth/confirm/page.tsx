@@ -19,16 +19,15 @@ export default function ConfirmPage() {
 
   useEffect(() => {
     async function init() {
-      const hash = window.location.hash.replace("#", "");
-      const params = new URLSearchParams(hash);
-      const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token") ?? "";
+      // クエリパラメータからtoken_hashを取得
+      const params = new URLSearchParams(window.location.search);
+      const tokenHash = params.get("token_hash");
       const type = params.get("type");
 
-      if (accessToken && type === "invite") {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
+      if (tokenHash && type === "invite") {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "invite",
         });
         if (!error) {
           setReady(true);
@@ -36,9 +35,22 @@ export default function ConfirmPage() {
           setError("招待リンクが無効です: " + error.message);
         }
       } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setReady(true);
+        // ハッシュからaccess_tokenも試す（フォールバック）
+        const hash = window.location.hash.replace("#", "");
+        const hashParams = new URLSearchParams(hash);
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token") ?? "";
+
+        if (accessToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!error) {
+            setReady(true);
+          } else {
+            setError("招待リンクが無効です: " + error.message);
+          }
         } else {
           setError("招待リンクが無効です。再度招待を依頼してください。");
         }
