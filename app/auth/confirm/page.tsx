@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../../lib/supabase";
+import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 
 export default function ConfirmPage() {
@@ -12,13 +12,39 @@ export default function ConfirmPage() {
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   useEffect(() => {
-    // URLのハッシュからセッションを取得
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setReady(true);
+    async function init() {
+      const hash = window.location.hash.replace("#", "");
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token") ?? "";
+      const type = params.get("type");
+
+      if (accessToken && type === "invite") {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!error) {
+          setReady(true);
+        } else {
+          setError("招待リンクが無効です: " + error.message);
+        }
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setReady(true);
+        } else {
+          setError("招待リンクが無効です。再度招待を依頼してください。");
+        }
       }
-    });
+    }
+    init();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,16 +67,24 @@ export default function ConfirmPage() {
       setLoading(false);
       return;
     }
-
-    // profilesのfull_nameが未設定の場合は設定を促す
     router.push("/");
   };
 
-  if (!ready) {
+  if (!ready && !error) {
     return (
       <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
         <div className="bg-white rounded-2xl border border-zinc-200 p-8 w-full max-w-sm text-center">
           <p className="text-zinc-600 text-sm">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !ready) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl border border-zinc-200 p-8 w-full max-w-sm text-center">
+          <p className="text-red-500 text-sm">{error}</p>
         </div>
       </div>
     );
